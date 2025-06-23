@@ -1,151 +1,106 @@
 # TGLoggerSPM
 
-Бібліотека для відправки логів та нотифікацій в Telegram з гнучкою архітектурою та можливістю створення власних типів нотифікацій.
+A library for sending logs and notifications to Telegram with a flexible architecture. Now the user defines all notification types and can omit threadID if not needed.
 
-## Особливості
+## Features
 
-- ✅ Гнучка архітектура з протоколом `NotificationTypeProtocol`
-- ✅ Можливість створення власних типів нотифікацій
-- ✅ Налаштування власних ботів та чатів
-- ✅ Підтримка HTML форматування
-- ✅ Автоматичне перемикання між ботами при помилках
-- ✅ Підтримка різних середовищ (DEBUG/RELEASE)
-- ✅ Асинхронна відправка повідомлень
+- ✅ Flexible architecture via `NotificationTypeProtocol`
+- ✅ User defines their own enum/struct for notification types
+- ✅ `threadID` is optional — you can omit it if you don't use topics
+- ✅ Custom bot and chat configuration
+- ✅ HTML formatting support
+- ✅ Asynchronous message sending
 
-## Встановлення
+## Installation
 
 ### Swift Package Manager
 
-Додай залежність до твого `Package.swift`:
+Add the dependency to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-username/TGLoggerSPM.git", from: "1.0.0")
+    .package(url: "https://github.com/GoodwinNick/TGLoggerSPM.git", from: "1.0.0")
 ]
 ```
 
-Або через Xcode: `File` → `Add Package Dependencies` → введи URL репозиторію.
+Or via Xcode: `File` → `Add Package Dependencies` → enter the repository URL.
 
-## Швидкий старт
+## Quick Start
 
-### Базове використання
+### 1. Define your notification type
 
-```swift
-import TGLoggerSPM
-
-// Використання стандартного сервісу
-let service = TelegramNotificationService.shared
-
-// Відправка повідомлення
-service.send("Помилка в додатку", as: .errors)
-service.send("Нова підписка", as: .subscriptions)
-```
-
-### Створення власних типів нотифікацій
+#### Using struct
 
 ```swift
-// Створення власного типу
-let customError = CustomNotificationType(rawValue: "my_error", threadID: 100)
+struct MyNotificationType: NotificationTypeProtocol {
+    let rawValue: String
+    let threadID: Int? // optional
+}
 
-// Використання
-service.send("Моя помилка", as: customError)
+let errorType = MyNotificationType(rawValue: "error", threadID: 123)
+let simpleType = MyNotificationType(rawValue: "simple") // without threadID
 ```
 
-### Використання власних ботів
-
-```swift
-// Створення власної конфігурації
-let customTarget = TopicTarget(
-    chatID: -1001234567890,
-    botTokens: [
-        "YOUR_BOT_TOKEN_1",
-        "YOUR_BOT_TOKEN_2"
-    ]
-)
-
-// Створення сервісу з власною конфігурацією
-let customService = TelegramNotificationService(topicTarget: customTarget)
-```
-
-## Типи нотифікацій
-
-### Стандартні типи
-
-- `.subscriptions` - Підписки
-- `.errors` - Помилки
-- `.analytics` - Аналітика
-- `.support` - Підтримка
-- `.paywallOpened` - Відкриття paywall
-- `.promotion` - Промоції
-- `.debug` - Debug повідомлення
-
-### Створення власних типів
-
-#### Через struct
-
-```swift
-let myType = CustomNotificationType(rawValue: "my_type", threadID: 123)
-```
-
-#### Через enum
+#### Using enum
 
 ```swift
 enum MyAppNotificationType: String, NotificationTypeProtocol {
     case userRegistration
     case paymentSuccess
+    case appCrash
+    case info
     
-    var threadID: Int {
+    var threadID: Int? {
         switch self {
         case .userRegistration: return 10
         case .paymentSuccess: return 11
+        case .appCrash: return 12
+        case .info: return nil // no topic
         }
     }
 }
 ```
 
-## Форматування повідомлень
+### 2. Configure your bots
 
-Бібліотека підтримує HTML форматування:
+```swift
+let target = TopicTarget(
+    chatID: 0,
+    botTokens: ["YOUR_BOT_TOKEN_1", "YOUR_BOT_TOKEN_2"]
+)
+let service = TelegramNotificationService(topicTarget: target)
+```
+
+### 3. Send messages
+
+```swift
+await service.send("Error!", as: errorType)
+await service.send("Info", as: MyAppNotificationType.info)
+```
+
+## Message formatting
+
+The library supports HTML formatting:
 
 ```swift
 let message = """
-\("ПОМИЛКА".tgBold())
-
-\("Деталі:".tgUnderline())
-• Функція: \("processData".italic())
-• Статус: \(String.tgNo)
+\("ERROR".tgBold())
+\("Details:".tgUnderline())
+• Function: \("processData".italic())
+• Status: \(String.tgNo)
 """
-
-service.send(message, as: .errors)
+await service.send(message, as: errorType)
 ```
 
-### Доступні методи форматування
+### Available formatting methods
 
-- `.tgBold()` - Жирний текст
-- `.tgUnderline()` - Підкреслений текст
-- `.italic()` - Курсив
-- `.tgBoldUnderline()` - Жирний + підкреслений
-- `.boldItalic()` - Жирний + курсив
+- `.tgBold()` — Bold text
+- `.tgUnderline()` — Underlined text
+- `.italic()` — Italic text
+- `.tgBoldUnderline()` — Bold + underlined
+- `.boldItalic()` — Bold + italic
 
-## Конфігурація для різних середовищ
-
-```swift
-#if DEBUG
-let debugTarget = TopicTarget(
-    chatID: -1001234567890,
-    botTokens: ["DEBUG_BOT_TOKEN"]
-)
-let service = TelegramNotificationService(topicTarget: debugTarget)
-#else
-let prodTarget = TopicTarget(
-    chatID: -1009876543210,
-    botTokens: ["PROD_BOT_TOKEN_1", "PROD_BOT_TOKEN_2"]
-)
-let service = TelegramNotificationService(topicTarget: prodTarget)
-#endif
-```
-
-## Відправка JSON даних
+## Sending JSON data
 
 ```swift
 let userData: [String: Any] = [
@@ -153,40 +108,32 @@ let userData: [String: Any] = [
     "action": "purchase",
     "amount": 9.99
 ]
-
 if let jsonString = String.prettyJSONString(from: userData) {
     let message = """
-    \("НОВА ПІДПИСКА".tgBold())
-    
-    \("Дані користувача:".tgUnderline())
+    \("NEW SUBSCRIPTION".tgBold())
+    \("User data:".tgUnderline())
     \(jsonString)
     """
-    
-    service.send(message, as: .subscriptions)
+    await service.send(message, as: simpleType)
 }
 ```
 
-## Налаштування Telegram бота
+## Telegram bot setup
 
-1. Створи бота через [@BotFather](https://t.me/botfather)
-2. Отримай токен бота
-3. Додай бота до групи/каналу
-4. Отримай chat ID групи/каналу
-5. Створи топики в групі для різних типів нотифікацій
-6. Отримай thread ID для кожного топику
+1. Create a bot via [@BotFather](https://t.me/botfather)
+2. Get the bot token
+3. Add the bot to your group/channel
+4. Get the chat ID of the group/channel
+5. (Optional) Create topics in the group for different notification types
+6. (Optional) Get the thread ID for each topic
 
-### Отримання Chat ID
+### If you don't use topics
+Just omit threadID in your type — messages will go to the main chat.
 
-```swift
-// Додай тимчасовий код для отримання chat ID
-service.send("Test message", as: .debug)
-// Подивись в логах бота chat ID
-```
-
-## Ліцензія
+## License
 
 MIT License
 
-## Підтримка
+## Support
 
-Якщо у тебе є питання або пропозиції, створюй issue в репозиторії. 
+If you have questions or suggestions, create an issue in the repository. 
