@@ -169,42 +169,41 @@ public actor TelegramNotificationService {
 // MARK: - String Extensions
 
 extension String {
-    func escapedMarkdownV2() -> String {
+    public func escapedMarkdownV2() -> String {
         let special: Set<Character> = ["_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"]
         return reduce("") { $0 + (special.contains($1) ? "\\" + String($1) : String($1)) }
     }
     
-    func tgBoldUnderline() -> String {
+    public func tgBoldUnderline() -> String {
         return "<ins><b>\(self.escapedMarkdownV2())</b></ins>"
     }
     
-    func tgBold() -> String {
+    public func tgBold() -> String {
         return "<b>\(self.escapedMarkdownV2())</b>"
     }
     
-    func tgUnderline() -> String {
+    public func tgUnderline() -> String {
         return "<u>\(self.escapedMarkdownV2())</u>"
     }
     
-    func italic() -> String {
+    public func italic() -> String {
         return "<i>\(self.escapedMarkdownV2())</i>"
     }
     
-    func boldItalic() -> String {
+    public func boldItalic() -> String {
         return "<b><i>\(self.escapedMarkdownV2())</i></b>"
     }
     
-    static var tgYes: String {
+    public static var tgYes: String {
         return "Yes".boldItalic()
     }
     
-    static var tgNo: String {
+    public static var tgNo: String {
         return "No".boldItalic()
     }
     
-    static func prettyJSONString(from dictionary: [String: Any]) -> String? {
+    public static func prettyJSONString(from dictionary: [String: Any]) -> String? {
         if dictionary.isEmpty { return nil }
-        
         guard JSONSerialization.isValidJSONObject(dictionary),
               let data = try? JSONSerialization.data(withJSONObject: dictionary, options: .prettyPrinted),
               let jsonString = String(data: data, encoding: .utf8) else {
