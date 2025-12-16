@@ -103,7 +103,7 @@ public actor TelegramNotificationService {
                 text: text,
                 chatID: topicTarget.chatID,
                 threadID: type.threadID,
-                botToken: token,
+                botToken: token
             )
             
             if success { return }
